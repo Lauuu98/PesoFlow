@@ -1,17 +1,8 @@
 "use strict";
 
-const STORAGE_KEY = "pesoflow-budget-v1";
+const { firebaseConfig } = require("./firebaseConfig");
 
-// Firebase init (Storage upload)
-const firebaseConfig = {
-  apiKey: "AIzaSyANDEywloYk6rOa1yd6e-3o3EC5HWsI1DY",
-  authDomain: "pesoflow-b2b90.firebaseapp.com",
-  projectId: "pesoflow-b2b90",
-  storageBucket: "pesoflow-b2b90.firebasestorage.app",
-  messagingSenderId: "107782830363",
-  appId: "1:107782830363:web:7cb3f69a16f393e4fdbbbe",
-  measurementId: "G-ZPSEKLDCHP"
-};
+const STORAGE_KEY = "pesoflow-budget-v1";
 
 firebase.initializeApp(firebaseConfig);
 const firebaseStorage = firebase.storage();
