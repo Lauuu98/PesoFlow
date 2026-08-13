@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A private, offline multi-source budget tracker.">
+  <title>PesoFlow — Budget Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Firebase (compat) for Storage with your current non-module app.js -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="PesoFlow home">
+      <span class="brand-mark" aria-hidden="true">₱</span>
+      <span><strong>PesoFlow</strong><small>Personal budget</small></span>
+    </a>
+    <nav class="header-actions" aria-label="Data controls">
+      <button class="btn btn-ghost" id="import-btn" type="button">Import data</button>
+      <button class="btn btn-ghost" id="export-btn" type="button">Export</button>
+      <input id="import-file" type="file" accept="application/json,.json" hidden>
+    </nav>
+  </header>
+
+  <main id="top" class="app-shell">
+    <section class="dashboard-top" aria-labelledby="dashboard-title">
+      <div class="dashboard-heading"><div><p class="eyebrow">Overview</p><h2 id="dashboard-title">Your money</h2></div><span>Balances update as you add transactions</span></div>
+      <div class="summary-grid" aria-label="Budget summary">
+        <article class="summary-card summary-main">
+          <span class="summary-label">Total available</span>
+          <strong id="total-funds">₱0.00</strong>
+          <span class="summary-hint" id="source-count">Across 0 sources</span>
+        </article>
+        <article class="summary-card">
+          <span class="summary-icon income" aria-hidden="true">↗</span>
+          <span class="summary-label">Money in</span>
+          <strong id="total-income">₱0.00</strong>
+        </article>
+        <article class="summary-card">
+          <span class="summary-icon expense" aria-hidden="true">↘</span>
+          <span class="summary-label">Money out</span>
+          <strong id="total-expenses">₱0.00</strong>
+        </article>
+      </div>
+    </section>
+
+    <section class="action-panel" aria-labelledby="actions-title">
+      <div class="action-heading">
+        <p class="eyebrow">Quick add</p>
+        <h2 id="actions-title">Record a transaction</h2>
+      </div>
+      <div class="quick-actions" aria-label="Budget actions">
+        <button class="quick-action expense-action" id="quick-expense-btn" type="button"><span class="quick-icon">−</span><span><strong>Add expense</strong><small>Record money you spent</small></span><b aria-hidden="true">→</b></button>
+        <button class="quick-action" id="add-transaction-btn" type="button"><span class="quick-icon">+</span><span><strong>Add income</strong><small>Record money you received</small></span><b aria-hidden="true">→</b></button>
+        <button class="quick-action source-action" id="quick-source-btn" type="button"><span class="quick-icon">+</span><span><strong>Add account</strong><small>Cash, bank, or e-wallet</small></span><b aria-hidden="true">→</b></button>
+      </div>
+    </section>
+
+    <div class="content-grid">
+      <section class="panel sources-panel" aria-labelledby="sources-title">
+        <div class="section-heading">
+          <div><p class="eyebrow">Accounts</p><h2 id="sources-title">Where your money is</h2></div>
+          <button class="btn btn-small btn-dark" id="add-source-btn" type="button">+ Add account</button>
+        </div>
+        <div id="sources-list" class="sources-list"></div>
+      </section>
+
+      <section class="panel activity-panel" aria-labelledby="activity-title">
+        <div class="section-heading activity-heading">
+          <div><p class="eyebrow">Transactions</p><h2 id="activity-title">Recent activity</h2></div>
+        </div>
+        <div class="filters" aria-label="Transaction filters">
+          <label><span class="sr-only">Filter by type</span>
+            <select id="type-filter"><option value="all">All activity</option><option value="income">Money in</option><option value="expense">Money out</option></select>
+          </label>
+          <label><span class="sr-only">Filter by source</span><select id="source-filter"><option value="all">All sources</option></select></label>
+        </div>
+        <div id="transactions-list" class="transactions-list"></div>
+      </section>
+    </div>
+
+    <section class="analytics-panel" aria-labelledby="analytics-title">
+      <div class="section-heading analytics-heading">
+        <div><p class="eyebrow">Insights</p><h2 id="analytics-title">Spending overview</h2></div>
+        <span class="analytics-period">Last 6 months</span>
+      </div>
+      <div class="analytics-grid">
+        <article class="insight-card">
+          <span class="insight-label">Net cash flow</span>
+          <strong id="analytics-net">₱0.00</strong>
+          <small id="analytics-net-note">Money in minus money out</small>
+        </article>
+        <article class="insight-card">
+          <span class="insight-label">Top spending source</span>
+          <strong id="analytics-top-source">—</strong>
+          <small id="analytics-top-note">No expenses recorded yet</small>
+        </article>
+        <article class="chart-card trend-card">
+          <div class="chart-heading"><div><span class="insight-label">Monthly cash flow</span><small>Income and expenses over time</small></div><div class="chart-legend"><span><i class="legend-income"></i>Money in</span><span><i class="legend-expense"></i>Money out</span></div></div>
+          <div id="monthly-chart" class="monthly-chart"></div>
+        </article>
+        <article class="chart-card source-chart-card">
+          <div class="chart-heading"><div><span class="insight-label">Expenses by source</span><small>Where spending was deducted</small></div></div>
+          <div id="source-breakdown" class="source-breakdown"></div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer><span>PesoFlow</span><span>Your data stays in this browser.</span></footer>
+
+  <dialog id="source-dialog" aria-labelledby="source-dialog-title">
+    <form id="source-form" novalidate>
+      <div class="dialog-heading"><div><p class="eyebrow">Account</p><h2 id="source-dialog-title">Add an account</h2></div><button class="icon-btn close-dialog" type="button" aria-label="Close">×</button></div>
+      <input id="source-id" type="hidden">
+      <label class="field">Account name<input id="source-name" maxlength="40" required placeholder="e.g. Cash, Maya, BDO"><small class="error" id="source-name-error"></small></label>
+      <label class="field">Opening balance<input id="source-balance" type="number" min="0" step="0.01" inputmode="decimal" required placeholder="0.00"><small class="field-help">The amount already in this source.</small><small class="error" id="source-balance-error"></small></label>
+      <div class="dialog-actions"><button class="btn btn-ghost close-dialog" type="button">Cancel</button><button class="btn btn-primary" type="submit">Save account</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="transaction-dialog" aria-labelledby="transaction-dialog-title">
+    <form id="transaction-form" novalidate>
+      <div class="dialog-heading"><div><p class="eyebrow">Activity</p><h2 id="transaction-dialog-title">Add transaction</h2></div><button class="icon-btn close-dialog" type="button" aria-label="Close">×</button></div>
+      <input id="transaction-id" type="hidden">
+      <fieldset class="type-toggle"><legend class="sr-only">Transaction type</legend><label><input type="radio" name="transaction-type" value="expense" checked><span>Money out</span></label><label><input type="radio" name="transaction-type" value="income"><span>Money in</span></label></fieldset>
+      <label class="field">Source<select id="transaction-source" required></select><small class="error" id="transaction-source-error"></small></label>
+      <div class="field-row">
+        <label class="field">Amount<input id="transaction-amount" type="number" min="0.01" step="0.01" inputmode="decimal" required placeholder="0.00"><small class="error" id="transaction-amount-error"></small></label>
+        <label class="field">Date<input id="transaction-date" type="date" required><small class="error" id="transaction-date-error"></small></label>
+      </div>
+      <label class="field">Note <span class="optional">Optional</span><input id="transaction-note" maxlength="100" placeholder="What was this for?"></label>
+      <p class="balance-preview" id="balance-preview"></p>
+      <div class="dialog-actions"><button class="btn btn-ghost close-dialog" type="button">Cancel</button><button class="btn btn-primary" type="submit">Save transaction</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="reassign-dialog" aria-labelledby="reassign-title">
+    <form id="reassign-form">
+      <div class="dialog-heading"><div><p class="eyebrow">Before deleting</p><h2 id="reassign-title">Move transaction history</h2></div><button class="icon-btn close-dialog" type="button" aria-label="Close">×</button></div>
+      <p id="reassign-message" class="dialog-copy"></p><input id="delete-source-id" type="hidden">
+      <label class="field">Move transactions to<select id="reassign-target" required></select></label>
+      <div class="dialog-actions"><button class="btn btn-ghost close-dialog" type="button">Cancel</button><button class="btn btn-danger" type="submit">Move & delete</button></div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
